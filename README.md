@@ -21,9 +21,9 @@ Designed to integrate with existing WWDead UI tools
 The entire system is controlled by clicking the text.
 **Left click**
 Cycles display modes:
-Mode 0 (default) - Max AP in HH:MM:SS
-Mode 1 - Max AP at HH:MM AM/PM
-Mode 2 - Max AP at HH:MM (24-hour)
+Mode 0 (default) - Max AP in HH:MM:SS, 
+Mode 1 - Max AP at HH:MM AM/PM, 
+Mode 2 - Max AP at HH:MM (24-hour), 
 
 **Right click**
 Toggles UTC display:
