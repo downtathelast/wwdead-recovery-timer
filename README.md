@@ -7,7 +7,7 @@ AP Tracking tools
 
 The legacy versions are preserved in /archive for reference but are no longer maintained.
 
-**Features**
+***Features***
 Live AP countdown (HH:MM:SS)
 AP recovery tracking
 Accurate next AP calculation
@@ -16,6 +16,23 @@ Unified UI module
 Lightweight and non-intrusive
 Designed to integrate with existing WWDead UI tools
 
+##Controls - (important)
+
+The entire system is controlled by clicking the text.
+**Left click**
+Cycles display modes:
+Mode 0 (default) - Max AP in HH:MM:SS
+Mode 1 - Max AP at HH:MM AM/PM
+Mode 2 - Max AP at HH:MM (24-hour)
+
+**Right click**
+Toggles UTC display:
+Adds "UTC" label
+Uses UTC time instead of local time
+
+**Per-character memory**
+Switching characters = different settings
+Each character remembers its own view mode
 
 **Planned:**
 AP alarm / notification

@@ -1,0 +1,302 @@
+// ==UserScript==
+// @name                WWDead AP Recovery Module
+// @namespace           wwdead-ap-recovery-module
+// @version             1.0.0
+// @description         AP countdown + 12/24hr views + UTC toggle + per-character persistent alarm system
+// @author              Sean Dwyer, DTTL
+// @match               https://wwdead.com/classic*
+// @run-at              document-idle
+// @grant               none
+// @license             GNU GPL v2 or later
+// ==/UserScript==
+
+
+////////////////////////////////////
+// CONTROLS
+///////////////////////////////////
+//The entire system is controlled by clicking the text.
+//**Left click**
+//Cycles display modes:
+//Mode 0 (default) - Max AP in HH:MM:SS
+//Mode 1 - Max AP at HH:MM AM/PM
+//Mode 2 - Max AP at HH:MM (24-hour)
+//
+//**Right click**
+//Toggles UTC display:
+//Adds "UTC" label
+//Uses UTC time instead of local time
+//
+//**Per-character memory**
+//Switching characters = different settings
+//Each character remembers its own view mode
+////////////////////////////////////
+
+(function () {
+    'use strict';
+
+    // =========================
+    // STATE KEYS (per character)
+    // =========================
+    function getCharacterKey() {
+        const ap = getAP();
+        const body = document.body.textContent;
+
+        const nameMatch = body.match(/(?:You are|Character)\s*[:\-]\s*([A-Za-z0-9_\-]+)/i);
+        const name = nameMatch ? nameMatch[1] : null;
+
+        if (name) return "wwdead_ap_" + name;
+
+        return "wwdead_ap_" + btoa(location.href.split("?")[0] + "_" + (ap ?? "na"));
+    }
+
+    function loadState(key) {
+        return JSON.parse(localStorage.getItem(key)) || {
+            mode: 0,
+            utc: false,
+            alarm: null,
+            fired: false
+        };
+    }
+
+    function saveState(key, state) {
+        localStorage.setItem(key, JSON.stringify(state));
+    }
+
+    // =========================
+    // INIT
+    // =========================
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+
+    function init() {
+        const ap = getAP();
+        if (ap === null) return;
+
+        const elem = getInfoBox();
+        if (!elem) return;
+
+        const key = getCharacterKey();
+        const state = loadState(key);
+
+        const minutesToAdd = 30 * (50 - ap);
+        if (minutesToAdd <= 0) return;
+
+        let targetMillisec = Date.now() + minutesToAdd * 60000;
+        targetMillisec -= (targetMillisec % 1800000);
+
+        const span = document.createElement('span');
+        span.style.fontSize = '11px';
+        span.style.cursor = 'pointer';
+        span.style.userSelect = 'none';
+
+        span.title =
+            "Click: change view mode\n" +
+            "Right-click: toggle UTC\n" +
+            "Shift+Click: set alarm (full AP)\n" +
+            "Alt+Click: clear alarm";
+
+        elem.appendChild(span);
+
+        // =========================
+        // INTERACTIONS
+        // =========================
+
+        span.addEventListener("click", (e) => {
+            if (e.shiftKey) {
+                setAlarm(state, key, targetMillisec);
+                tick();
+                return;
+            }
+
+            state.mode = (state.mode + 1) % 3;
+            saveState(key, state);
+            tick();
+        });
+
+        span.addEventListener("contextmenu", (e) => {
+            e.preventDefault();
+            state.utc = !state.utc;
+            saveState(key, state);
+            tick();
+        });
+
+        span.addEventListener("click", (e) => {
+            if (e.altKey) {
+                state.alarm = null;
+                state.fired = false;
+                saveState(key, state);
+                tick();
+            }
+        });
+
+        // =========================
+        // LOOP
+        // =========================
+        function tick() {
+            const now = Date.now();
+            const remaining = targetMillisec - now;
+
+            if (remaining <= 0) {
+                span.textContent = " Max AP reached!";
+                return;
+            }
+
+            checkAlarm(state, key, targetMillisec);
+
+            if (state.mode === 0) {
+                renderCountdown(span, remaining, state);
+            } else if (state.mode === 1) {
+                renderClock(span, targetMillisec, false, state);
+            } else {
+                renderClock(span, targetMillisec, true, state);
+            }
+
+            saveState(key, state);
+            setTimeout(tick, 1000);
+        }
+
+        tick();
+    }
+
+    // =========================
+    // RENDER MODES
+    // =========================
+
+    function renderCountdown(span, remaining, state) {
+        const totalSeconds = Math.max(0, Math.floor(remaining / 1000));
+
+        const hours = Math.floor(totalSeconds / 3600);
+        const mins = Math.floor((totalSeconds % 3600) / 60);
+        const secs = totalSeconds % 60;
+
+        const timeStr =
+            String(hours).padStart(2, '0') + ":" +
+            String(mins).padStart(2, '0') + ":" +
+            String(secs).padStart(2, '0');
+
+        let str = " Max AP in " + timeStr;
+
+        if (state.utc) str += " UTC";
+        if (state.alarm) str += " 🔔";
+
+        span.textContent = str;
+    }
+
+    function renderClock(span, targetMillisec, is24, state) {
+        const d = new Date(targetMillisec);
+
+        const hours = state.utc ? d.getUTCHours() : d.getHours();
+        const minutes = state.utc ? d.getUTCMinutes() : d.getMinutes();
+
+        let timeStr;
+
+        if (is24) {
+            timeStr =
+                (hours < 10 ? "0" : "") +
+                hours +
+                ":" +
+                (minutes < 10 ? "0" : "") +
+                minutes;
+        } else {
+            const ampm = hours >= 12 ? "PM" : "AM";
+            const h = hours % 12 || 12;
+            timeStr =
+                h +
+                ":" +
+                (minutes < 10 ? "0" : "") +
+                minutes +
+                " " +
+                ampm;
+        }
+
+        let prefix = " Max AP";
+
+        span.textContent =
+            prefix +
+            " at " +
+            timeStr +
+            (state.utc ? " UTC" : "") +
+            (state.alarm ? " 🔔" : "");
+    }
+
+    // =========================
+    // ALARM SYSTEM
+    // =========================
+
+    function setAlarm(state, key, targetMillisec) {
+        state.alarm = {
+            type: "full",
+            time: targetMillisec
+        };
+        state.fired = false;
+        saveState(key, state);
+        firePreview();
+    }
+
+    function checkAlarm(state, key, targetMillisec) {
+        if (!state.alarm || state.fired) return;
+
+        const now = Date.now();
+        let trigger = null;
+
+        if (state.alarm.type === "full") {
+            trigger = state.alarm.time;
+        }
+
+        if (trigger && now >= trigger) {
+            state.fired = true;
+            saveState(key, state);
+            fireAlarm();
+        }
+    }
+
+    function fireAlarm() {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const o = ctx.createOscillator();
+            o.frequency.value = 880;
+            o.connect(ctx.destination);
+            o.start();
+            setTimeout(() => o.stop(), 300);
+        } catch (e) {}
+
+        if (Notification && Notification.permission === "granted") {
+            new Notification("WWDead AP Ready!", {
+                body: "Your AP has fully recovered."
+            });
+        }
+    }
+
+    function firePreview() {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const o = ctx.createOscillator();
+            o.frequency.value = 440;
+            o.connect(ctx.destination);
+            o.start();
+            setTimeout(() => o.stop(), 120);
+        } catch (e) {}
+    }
+
+    // =========================
+    // HELPERS
+    // =========================
+
+    function getAP() {
+        const re = /You have\s*(-?\d+)\s*Action Points?/i;
+        const match = document.body.textContent.match(re);
+        return match ? parseInt(match[1], 10) : null;
+    }
+
+    function getInfoBox() {
+        const divs = document.getElementsByTagName('div');
+        for (let i = 0; i < divs.length; i++) {
+            if (divs[i].className === 'gt') return divs[i];
+        }
+        return null;
+    }
+
+})();
