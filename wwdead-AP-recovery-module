@@ -3,13 +3,32 @@
 // @namespace           wwdead-ap-recovery-module
 // @version             1.0.0
 // @description         AP countdown + 12/24hr views + UTC toggle + per-character persistent alarm system
-// @author              Sean Dwyer, DTTL
+// @author              DTTL
 // @match               https://wwdead.com/classic*
 // @run-at              document-idle
 // @grant               none
 // @license             GNU GPL v2 or later
 // ==/UserScript==
 
+/**
+ * Based on the Urban Dead AP Recovery Time Indicator concept
+ * originally created by Sean Dwyer (2006)
+ *
+ * This userscript is a derivative work and unified adaptation of
+ * multiple related Urban Dead / WWDead AP recovery scripts,
+ * merged and extended by DTTL (2026).
+ *
+ * Original inspiration:
+ *   UrbanDead AP Recovery Time Indicator
+ *   © 2006 Sean Dwyer <sean DOT dwyer AT gmail DOT com>
+ *
+ * License:
+ *   GNU General Public License v2 or later
+ *   http://www.gnu.org/licenses/gpl.txt
+ *
+ * This script remains distributed under the GPL and
+ * retains compatibility with the original license terms.
+ */
 
 ////////////////////////////////////
 // CONTROLS
