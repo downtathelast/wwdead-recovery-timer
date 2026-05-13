@@ -2,12 +2,14 @@
 // @name                WWDead AP Recovery Module
 // @namespace           wwdead-ap-recovery-module
 // @version             1.0.0
-// @description         AP countdown + 12/24hr views + UTC toggle + per-character persistent alarm system
+// @description         AP countdown, 12/24hr views + UTC toggle
 // @author              DTTL
 // @match               https://wwdead.com/classic*
 // @run-at              document-idle
 // @grant               none
 // @license             GNU GPL v2 or later
+// @downloadURL  https://raw.githubusercontent.com/downtathelast/main/wwdead-recovery-timer/wwdead-AP-recovery-module.user.js
+// @updateURL    https://raw.githubusercontent.com/downtathelast/main/wwdead-recovery-timer/wwdead-AP-recovery-module.user.js
 // ==/UserScript==
 
 /**
